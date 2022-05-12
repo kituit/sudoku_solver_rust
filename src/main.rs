@@ -127,6 +127,7 @@ impl Sudoku {
 
 
 fn main() {
+    println!("Enter starting grid");
     let mut sudoku = Sudoku::create();
     sudoku.print();
 
