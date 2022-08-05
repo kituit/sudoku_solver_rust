@@ -17,28 +17,41 @@ impl Sudoku {
             grid: [[Cell::Invalid; SIZE] ; SIZE],
         };
 
-        loop {
+        let mut line = String::new();
+        let mut eof = false;
 
-            let mut a_str = String::new();
-            io::stdin().read_line(&mut a_str).expect("read error");
-            
-            let vec = a_str.split_whitespace()
-                .map(|x| x.parse::<usize>().expect("parse error"))
-                .collect::<Vec<usize>>();
+        while !eof {
+            match io::stdin().read_line(&mut line) {
+                Ok(0) => {
+                    eof = true;
+                }
+                Ok(_) => {
+                    let vec = line.split_whitespace()
+                    .map(|x| x.parse::<usize>().expect("parse error"))
+                    .collect::<Vec<usize>>();
 
-            let row = vec.get(0);
-            let col = vec.get(1);
-            let num = vec.get(2);
-            if row.is_some() && col.is_some() && num.is_some() {
-                let row = row.unwrap().clone();
-                let col = col.unwrap().clone();
-                let num = num.unwrap().clone();
-                sudoku.grid[row][col] = Cell::Valid(num);
-            } else {
-                return sudoku
+                    let row = vec.get(0);
+                    let col = vec.get(1);
+                    let num = vec.get(2);
+                    if row.is_some() && col.is_some() && num.is_some() {
+                        let row = row.unwrap().clone();
+                        let col = col.unwrap().clone();
+                        let num = num.unwrap().clone();
+                        sudoku.grid[row][col] = Cell::Valid(num);
+                    } else {
+                        break;
+                    }
+                }
+                Err(error) => {
+                    println!("Error: {error}");
+                }   
             }
-            
+            line.clear();
+
         }
+
+        return sudoku
+
     }
 
     fn solve(&mut self) -> bool {
@@ -78,9 +91,9 @@ impl Sudoku {
     }
 
     fn print(&self) {
-        for i in 0..(SIZE) {
-            for j in 0..(SIZE) {
-                match self.grid[i][j] {
+        for row in self.grid {
+            for cell in row {
+                match cell {
                     Cell::Valid(num) => print!("{} ", num),
                     Cell::Invalid => print!("0 "),
                 }
@@ -89,7 +102,7 @@ impl Sudoku {
         }
     }
 
-    fn valid_cell(&self, row: usize, col: usize, num: usize) -> bool{
+    fn valid_cell(&self, row: usize, col: usize, num: usize) -> bool {
         // Test row
         for test_col in 0..SIZE {
             if let Cell::Valid(val) = self.grid[row][test_col] {
@@ -130,11 +143,8 @@ fn main() {
     println!("Enter starting grid");
     let mut sudoku = Sudoku::create();
     sudoku.print();
-
     sudoku.solve();
-    
     println!("");
-
     sudoku.print()
 
 }
