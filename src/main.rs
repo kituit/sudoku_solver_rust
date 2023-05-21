@@ -1,151 +1,134 @@
 use std::io::{self};
+
 const SIZE:usize = 9;
 
-#[derive(Copy, Clone)]
-enum Cell {
-    Valid(usize),
-    Invalid,
-}
+type Sudoku = [[Option<u8>; SIZE]; SIZE];
 
-struct Sudoku {
-    grid: [[Cell; SIZE]; SIZE],
-}
+fn create() -> Sudoku {
+    let mut sudoku: Sudoku = [[None; SIZE] ; SIZE];
 
-impl Sudoku {
-    fn create() -> Sudoku {
-        let mut sudoku = Sudoku {
-            grid: [[Cell::Invalid; SIZE] ; SIZE],
-        };
+    let mut line = String::new();
 
-        let mut line = String::new();
-        let mut eof = false;
-
-        while !eof {
-            match io::stdin().read_line(&mut line) {
-                Ok(0) => {
-                    eof = true;
-                }
-                Ok(_) => {
-                    let vec = line.split_whitespace()
+    loop {
+        match io::stdin().read_line(&mut line) {
+            Ok(0) => {
+                break
+            }
+            Ok(_) => {
+                let vec = line.split_whitespace()
                     .map(|x| x.parse::<usize>().expect("parse error"))
                     .collect::<Vec<usize>>();
 
-                    let row = vec.get(0);
-                    let col = vec.get(1);
-                    let num = vec.get(2);
-                    if row.is_some() && col.is_some() && num.is_some() {
-                        let row = row.unwrap().clone();
-                        let col = col.unwrap().clone();
-                        let num = num.unwrap().clone();
-                        sudoku.grid[row][col] = Cell::Valid(num);
-                    } else {
-                        break;
-                    }
-                }
-                Err(error) => {
-                    println!("Error: {error}");
-                }   
+                assert!(vec.len() == 3);
+
+                let (row, col, num) = (vec[0], vec[1], vec[2] as u8);
+                sudoku[row][col] = Some(num);
+
             }
-            line.clear();
-
+            Err(error) => {
+                eprintln!("Error: {error}");
+            }   
         }
-
-        return sudoku
+        line.clear();
 
     }
 
-    fn solve(&mut self) -> bool {
-        let mut row = SIZE;
-        let mut col = SIZE;
+    return sudoku
 
-        // Find empty cell
-        for test_row in 0..SIZE {
-            for test_col in 0..SIZE {
-                match self.grid[test_row][test_col] {
-                    Cell::Valid(_) => continue,
-                    Cell::Invalid => {row = test_row; col = test_col},
-                }
+}
 
-            }
-        }
-        
-        // Sudoku is solved, no empty cell
-        if row == SIZE || col == SIZE {
-            return true
-        }
+fn solve(sudoku: &mut Sudoku) -> bool {
+    let mut row = SIZE;
+    let mut col = SIZE;
 
-        for num in 1..(SIZE + 1) {
-            if self.valid_cell(row, col, num) {
-                self.grid[row][col] = Cell::Valid(num);
-                let success = self.solve();
-                if !success {
-                    self.grid[row][col] = Cell::Invalid;
-                } else {
-                    return success;
-                }
-            }
-        }
-
-
-        return false
-    }
-
-    fn print(&self) {
-        for row in self.grid {
-            for cell in row {
-                match cell {
-                    Cell::Valid(num) => print!("{} ", num),
-                    Cell::Invalid => print!("0 "),
-                }
-            }
-            println!("");
-        }
-    }
-
-    fn valid_cell(&self, row: usize, col: usize, num: usize) -> bool {
-        // Test row
+    // Find empty cell
+    for test_row in 0..SIZE {
         for test_col in 0..SIZE {
-            if let Cell::Valid(val) = self.grid[row][test_col] {
-                if val == num {
-                    return false
-                }
+            match sudoku[test_row][test_col] {
+                Some(_) => continue,
+                None => {row = test_row; col = test_col},
             }
-        }
 
-        // Test col
-        for test_row in 0..SIZE {
-            if let Cell::Valid(val) = self.grid[test_row][col] {
-                if val == num {
-                    return false
-                }
-            }
         }
-
-        // Test square
-        let square_row = (row / 3) * 3;
-        let square_col = (col / 3) * 3;
-        for test_row in square_row..(square_row + 3) {
-            for test_col in square_col..(square_col + 3) {
-                if let Cell::Valid(val) = self.grid[test_row][test_col] {
-                    if val == num {
-                        return false
-                    }
-                }
-            }
-        }
-
+    }
+    
+    // Sudoku is solved, no empty cell
+    if row == SIZE || col == SIZE {
         return true
     }
+
+    for num in 1..(SIZE as u8 + 1) {
+        // let num = num as u8;
+        if valid_cell(sudoku, row, col, num) {
+            sudoku[row][col] = Some(num);
+            let success = solve(sudoku);
+            if !success {
+                sudoku[row][col] = None;
+            } else {
+                return success;
+            }
+        }
+    }
+
+
+    return false
+}
+
+fn print_sudoku(sudoku: &Sudoku) {
+    for row in sudoku {
+        for cell in row {
+            match cell {
+                Some(num) => print!("{} ", num),
+                None => print!("0 "),
+            }
+        }
+        println!("");
+    }
+}
+
+fn valid_cell(sudoku: &Sudoku, row: usize, col: usize, num: u8) -> bool {
+    // Test row
+    for test_col in 0..SIZE {
+        if let Some(val) = sudoku[row][test_col] {
+            if val == num {
+                return false
+            }
+        }
+    }
+
+    // Test col
+    for test_row in 0..SIZE {
+        if let Some(val) = sudoku[test_row][col] {
+            if val == num {
+                return false
+            }
+        }
+    }
+
+    // Test square
+    let square_row = (row / 3) * 3;
+    let square_col = (col / 3) * 3;
+    for test_row in square_row..(square_row + 3) {
+        for test_col in square_col..(square_col + 3) {
+            if let Some(val) = sudoku[test_row][test_col] {
+                if val == num {
+                    return false
+                }
+            }
+        }
+    }
+
+    return true
 }
 
 
 fn main() {
-    println!("Enter starting grid");
-    let mut sudoku = Sudoku::create();
-    sudoku.print();
-    sudoku.solve();
+    println!("Enter starting sudoku:");
+    let mut sudoku = create();
+    print_sudoku(&sudoku);
+    solve(&mut sudoku);
     println!("");
-    sudoku.print()
+    print_sudoku(&sudoku);
 
 }
 
